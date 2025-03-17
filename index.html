@@ -100,11 +100,20 @@
     <form id="dataForm">
       <div class="form-group">
         <label for="from"><b>from:</b></label>
-
         <input type="text" id="from" name="from" class="form-control" placeholder="Введіть 'from'" disabled>
         <div class="form-check">
           <input type="checkbox" id="fromCheckbox" class="form-check-input">
           <label class="form-check-label" for="fromCheckbox">activate the <b>from=</b> param</label>
+        </div>
+      </div>
+
+      <!-- Блок для tid -->
+      <div class="form-group">
+        <label for="tid"><b>tid:</b></label>
+        <input type="text" id="tid" name="tid" class="form-control" placeholder="Введіть 'tid'" disabled>
+        <div class="form-check">
+          <input type="checkbox" id="tidCheckbox" class="form-check-input">
+          <label class="form-check-label" for="tidCheckbox">activate the <b>tid=</b> param</label>
         </div>
       </div>
 
@@ -113,13 +122,15 @@
         <select id="action" name="action" class="form-select" required>
           <option value="lead">registration</option>
           <option value="sale">deposit</option>
+          <option value="rejected">rejected</option>
         </select>
       </div>
 
       <div id="saleFields" style="display:none;">
         <div class="form-group">
           <label for="sum"><b>Payment sum:</b></label>
-          <input type="number" id="sum" name="sum" class="form-control" placeholder="example 10" disabled>
+          <!-- Дозволяє вводити дробові значення -->
+          <input type="number" step="any" id="sum" name="sum" class="form-control" placeholder="example 10" disabled>
           <div class="form-check">
             <input type="checkbox" class="form-check-input" id="sumCheckbox">
             <label class="form-check-label" for="sumCheckbox">add paymant</label>
@@ -155,14 +166,20 @@
     document.getElementById('action').addEventListener('change', toggleSaleFields);
     document.getElementById('fromCheckbox').addEventListener('change', toggleFromField);
     document.getElementById('sumCheckbox').addEventListener('change', toggleSumField);
+    document.getElementById('tidCheckbox').addEventListener('change', toggleTidField);
 
     function toggleSaleFields() {
       const action = document.getElementById('action').value;
+      // Поле для payment відображається лише при виборі deposit
       document.getElementById('saleFields').style.display = (action === 'sale') ? 'block' : 'none';
     }
 
     function toggleFromField() {
       document.getElementById('from').disabled = !document.getElementById('fromCheckbox').checked;
+    }
+
+    function toggleTidField() {
+      document.getElementById('tid').disabled = !document.getElementById('tidCheckbox').checked;
     }
 
     function toggleSumField() {
@@ -178,7 +195,7 @@
       const idField = document.createElement('div');
       idField.classList.add('id-item');
       idField.innerHTML = `
-        <input type="text" class="form-control" placeholder="Введіть ID">
+        <input type="text" class="form-control" placeholder="введіть subid">
         <button type="button" class="remove-btn" onclick="removeId(this)">×</button>
       `;
       idList.appendChild(idField);
@@ -195,11 +212,13 @@
       const from = document.getElementById('from').value;
       const sum = document.getElementById('sum').value;
       const currency = document.getElementById('currency').value;
+      const tid = document.getElementById('tid').value;
       const ids = Array.from(document.querySelectorAll('.id-item input')).map(input => input.value).filter(value => value);
       const responseMessages = document.getElementById('responseMessages');
-      responseMessages.innerHTML = ''; // Очищення попередніх повідомлень
+      responseMessages.innerHTML = '';
 
       for (const id of ids) {
+        // Формування URL. Якщо вибрано rejected, статус буде "rejected"
         let url = `https://k-tracker.online/188c4ec/postback?status=${action}&subid=${id}`;
 
         if (action === 'sale') {
@@ -212,15 +231,19 @@
           url += `&from=${from}`;
         }
 
+        if (document.getElementById('tidCheckbox').checked && tid) {
+          url += `&tid=${tid}`;
+        }
+
         const response = await fetch(url);
         const message = document.createElement('div');
 
         if (response.ok) {
           message.classList.add('message', 'success-message');
-          message.textContent = `ID: ${id} - Запит успішно відправлено`;
+          message.textContent = `subid: ${id} - Успішно відправлено в Кейтаро`;
         } else {
           message.classList.add('message', 'error-message');
-          message.textContent = `ID: ${id} - Помилка: ${response.status}`;
+          message.textContent = `subid: ${id} - Помилка: ${response.status}`;
         }
 
         responseMessages.appendChild(message);
